@@ -1,27 +1,78 @@
 
-const connectionStatus = document.getElementById("connectionStatus");
-const connectionDot = document.getElementById("connectionDot");
-const databaseName = document.getElementById("databaseName");
-const recordCount = document.getElementById("recordCount");
-const projectCount = document.getElementById("projectCount");
+"use strict";
 
-const usersTable = document.getElementById("usersTable");
-const projectsTable = document.getElementById("projectsTable");
+// =====================================================
+// INDEX DATABASE — Dashboard Frontend
+// File: public/app.js
+// =====================================================
 
-const userForm = document.getElementById("userForm");
-const usernameInput = document.getElementById("username");
-const saveBtn = document.getElementById("saveBtn");
+const $ = (id) => document.getElementById(id);
 
-const projectForm = document.getElementById("projectForm");
-const projectNameInput = document.getElementById("projectName");
-const createProjectBtn = document.getElementById("createProjectBtn");
+const connectionStatus = $("connectionStatus");
+const connectionDot = $("connectionDot");
+const databaseName = $("databaseName");
+const recordCount = $("recordCount");
+const projectCount = $("projectCount");
 
-const refreshBtn = document.getElementById("refreshBtn");
-const message = document.getElementById("message");
-const projectMessage = document.getElementById("projectMessage");
+const usersTable = $("usersTable");
+const projectsTable = $("projectsTable");
 
-// Shared message and table helpers.
+const userForm = $("userForm");
+const usernameInput = $("username");
+const saveBtn = $("saveBtn");
+
+const projectForm = $("projectForm");
+const projectNameInput = $("projectName");
+const createProjectBtn = $("createProjectBtn");
+
+const refreshBtn = $("refreshBtn");
+const message = $("message");
+const projectMessage = $("projectMessage");
+
+// =====================================================
+// API HELPER
+// Uses same-origin cookies for a future/server-side
+// dashboard session. Never put the master API key here.
+// =====================================================
+
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    credentials: "same-origin",
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers
+    }
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  let data;
+
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    data = { error: text || `HTTP ${response.status}` };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      `Request failed (${response.status})`
+    );
+  }
+
+  return data;
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+
 function showMessage(element, text, type = "") {
+  if (!element) return;
+
   element.textContent = text;
   element.className = `message ${type}`.trim();
 }
@@ -34,21 +85,56 @@ function makeCell(value) {
 
 function formatDate(value) {
   const date = new Date(value);
+
   return Number.isNaN(date.getTime())
     ? "Unknown"
     : date.toLocaleString();
 }
 
 function showEmptyRow(table, text, columns = 4) {
+  if (!table) return;
+
   const row = document.createElement("tr");
   const cell = makeCell(text);
+
   cell.colSpan = columns;
   cell.className = "empty";
+
   row.appendChild(cell);
   table.replaceChildren(row);
 }
 
-// Table Manager UI.
+function setConnection(connected, database = "") {
+  if (connectionStatus) {
+    connectionStatus.textContent = connected
+      ? "Connected"
+      : "Unavailable";
+  }
+
+  if (connectionDot) {
+    connectionDot.style.background = connected
+      ? "#10b981"
+      : "#ef4444";
+  }
+
+  if (databaseName) {
+    databaseName.textContent = connected
+      ? `Database: ${database || "PostgreSQL"}`
+      : "Check API authentication and database connection";
+  }
+}
+
+function makeStatusBadge(text) {
+  const badge = document.createElement("span");
+  badge.className = "pill";
+  badge.textContent = text;
+  return badge;
+}
+
+// =====================================================
+// TABLE MANAGER UI
+// =====================================================
+
 const tableManager = document.createElement("section");
 tableManager.id = "tableManager";
 tableManager.className = "panel";
@@ -65,7 +151,7 @@ tableManager.innerHTML = `
     <label for="tableProject">Select project</label>
     <div class="form-row">
       <select id="tableProject" required>
-        <option value="">Loading projects...</option>
+        <option value="">Choose a project...</option>
       </select>
     </div>
 
@@ -74,19 +160,25 @@ tableManager.innerHTML = `
     </label>
     <div class="form-row">
       <input id="tableName" type="text" maxlength="63"
-        pattern="[a-z][a-z0-9_]*" placeholder="e.g. orders" required>
+        pattern="[a-z][a-z0-9_]*"
+        placeholder="e.g. orders" required>
       <button id="createTableBtn" class="button primary" type="submit">
         + Create table
       </button>
     </div>
   </form>
 
-  <p id="tableMessage" class="message" role="status" aria-live="polite"></p>
+  <p id="tableMessage" class="message"
+    role="status" aria-live="polite"></p>
 
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>TABLE NAME</th><th>PROJECT SCHEMA</th><th>STATUS</th></tr>
+        <tr>
+          <th>TABLE NAME</th>
+          <th>PROJECT SCHEMA</th>
+          <th>STATUS</th>
+        </tr>
       </thead>
       <tbody id="projectTables">
         <tr><td colspan="3" class="empty">Select a project.</td></tr>
@@ -96,20 +188,24 @@ tableManager.innerHTML = `
 `;
 
 const footer = document.querySelector("footer");
+
 if (footer) {
   footer.before(tableManager);
 } else {
   document.body.appendChild(tableManager);
 }
 
-const tableForm = document.getElementById("tableForm");
-const tableProject = document.getElementById("tableProject");
-const tableNameInput = document.getElementById("tableName");
-const createTableBtn = document.getElementById("createTableBtn");
-const tableMessage = document.getElementById("tableMessage");
-const projectTables = document.getElementById("projectTables");
+const tableForm = $("tableForm");
+const tableProject = $("tableProject");
+const tableNameInput = $("tableName");
+const createTableBtn = $("createTableBtn");
+const tableMessage = $("tableMessage");
+const projectTables = $("projectTables");
 
-// Column Manager UI.
+// =====================================================
+// COLUMN MANAGER UI
+// =====================================================
+
 const columnManager = document.createElement("section");
 columnManager.id = "columnManager";
 columnManager.className = "panel";
@@ -144,7 +240,8 @@ columnManager.innerHTML = `
     </label>
     <div class="form-row">
       <input id="columnName" type="text" maxlength="63"
-        pattern="[a-z][a-z0-9_]*" placeholder="e.g. website_name" required>
+        pattern="[a-z][a-z0-9_]*"
+        placeholder="e.g. website_name" required>
     </div>
 
     <label for="columnType" style="display:block;margin-top:16px">
@@ -158,13 +255,15 @@ columnManager.innerHTML = `
         <option value="date">DATE</option>
         <option value="timestamp">TIMESTAMPTZ</option>
       </select>
+
       <button id="addColumnBtn" class="button primary" type="submit">
         + Add column
       </button>
     </div>
   </form>
 
-  <p id="columnMessage" class="message" role="status" aria-live="polite"></p>
+  <p id="columnMessage" class="message"
+    role="status" aria-live="polite"></p>
 `;
 
 if (footer) {
@@ -173,85 +272,142 @@ if (footer) {
   document.body.appendChild(columnManager);
 }
 
-const columnForm = document.getElementById("columnForm");
-const columnProject = document.getElementById("columnProject");
-const columnTable = document.getElementById("columnTable");
-const columnNameInput = document.getElementById("columnName");
-const columnType = document.getElementById("columnType");
-const addColumnBtn = document.getElementById("addColumnBtn");
-const columnMessage = document.getElementById("columnMessage");
+const columnForm = $("columnForm");
+const columnProject = $("columnProject");
+const columnTable = $("columnTable");
+const columnNameInput = $("columnName");
+const columnType = $("columnType");
+const addColumnBtn = $("addColumnBtn");
+const columnMessage = $("columnMessage");
 
-// Connection status.
-function setConnection(connected, database = "") {
-  connectionStatus.textContent = connected ? "Connected" : "Unavailable";
-  connectionDot.style.background = connected ? "#10b981" : "#ef4444";
-  databaseName.textContent = connected
-    ? `Database: ${database}`
-    : "Check your local API";
-}
+// =====================================================
+// HEALTH CHECK
+// Public /health checks whether the web service is alive.
+// /api/health checks database connectivity and requires
+// whatever authentication the backend configures.
+// =====================================================
 
 async function loadHealth() {
   try {
-    const response = await fetch("/api/health");
-    const data = await response.json();
+    // Check public service status first.
+    const service = await apiRequest("/health");
 
-    if (!response.ok) throw new Error("Health check failed");
+    if (service.status !== "running") {
+      throw new Error("Service is not running.");
+    }
 
-    setConnection(data.status === "connected", data.database);
+    // Check PostgreSQL separately.
+    try {
+      const database = await apiRequest("/api/health");
+
+      setConnection(
+        database.status === "connected",
+        database.database || "PostgreSQL"
+      );
+    } catch (error) {
+      setConnection(false);
+      if (databaseName) {
+        databaseName.textContent =
+          `Service online; database check failed: ${error.message}`;
+      }
+    }
   } catch {
     setConnection(false);
   }
 }
 
-// Test records.
+// =====================================================
+// LOAD TEST RECORDS
+// =====================================================
+
 async function loadUsers() {
   try {
-    const response = await fetch("/api/users");
-    const users = await response.json();
+    const users = await apiRequest("/api/users");
 
-    if (!response.ok) {
-      throw new Error(users.error || "Could not load records.");
+    if (!Array.isArray(users)) {
+      throw new Error("Unexpected records response.");
     }
 
-    recordCount.textContent = users.length;
+    if (recordCount) {
+      recordCount.textContent = users.length;
+    }
+
     usersTable.replaceChildren();
 
     if (users.length === 0) {
-      showEmptyRow(usersTable, "No records yet. Add your first one above.");
+      showEmptyRow(
+        usersTable,
+        "No records yet. Add your first one above."
+      );
       return;
     }
 
     for (const user of users) {
       const row = document.createElement("tr");
+
       row.appendChild(makeCell(user.id));
       row.appendChild(makeCell(user.username));
       row.appendChild(makeCell(formatDate(user.created_at)));
 
       const statusCell = makeCell("");
-      const badge = document.createElement("span");
-      badge.className = "pill";
-      badge.textContent = "Saved";
-      statusCell.appendChild(badge);
+      statusCell.appendChild(makeStatusBadge("Saved"));
       row.appendChild(statusCell);
+
       usersTable.appendChild(row);
     }
   } catch (error) {
-    recordCount.textContent = "—";
+    if (recordCount) recordCount.textContent = "—";
+
     showEmptyRow(usersTable, error.message);
   }
 }
 
-// Load projects into dashboard and both project selectors.
+// =====================================================
+// PROJECT SELECTORS
+// =====================================================
+
+function fillProjectSelect(select, projects) {
+  const previous = select.value;
+
+  select.replaceChildren();
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choose a project...";
+  select.appendChild(placeholder);
+
+  for (const project of projects) {
+    const option = document.createElement("option");
+
+    option.value = String(project.id);
+    option.textContent = `${project.name} (ID: ${project.id})`;
+
+    select.appendChild(option);
+  }
+
+  if (projects.some(project => String(project.id) === previous)) {
+    select.value = previous;
+  } else if (projects.length > 0) {
+    select.value = String(projects[0].id);
+  }
+}
+
+// =====================================================
+// LOAD PROJECTS
+// =====================================================
+
 async function loadProjects() {
   try {
-    const response = await fetch("/api/projects");
-    const projects = await response.json();
+    const projects = await apiRequest("/api/projects");
 
-    if (!response.ok) {
-      throw new Error(projects.error || "Could not load projects.");
+    if (!Array.isArray(projects)) {
+      throw new Error("Unexpected projects response.");
     }
 
-    projectCount.textContent = projects.length;
+    if (projectCount) {
+      projectCount.textContent = projects.length;
+    }
+
     projectsTable.replaceChildren();
 
     if (projects.length === 0) {
@@ -259,16 +415,15 @@ async function loadProjects() {
     } else {
       for (const project of projects) {
         const row = document.createElement("tr");
+
         row.appendChild(makeCell(project.id));
         row.appendChild(makeCell(project.name));
         row.appendChild(makeCell(formatDate(project.created_at)));
 
         const statusCell = makeCell("");
-        const badge = document.createElement("span");
-        badge.className = "pill";
-        badge.textContent = "Created";
-        statusCell.appendChild(badge);
+        statusCell.appendChild(makeStatusBadge("Created"));
         row.appendChild(statusCell);
+
         projectsTable.appendChild(row);
       }
     }
@@ -281,43 +436,28 @@ async function loadProjects() {
       loadColumnTables()
     ]);
   } catch (error) {
-    projectCount.textContent = "—";
+    if (projectCount) projectCount.textContent = "—";
+
     showEmptyRow(projectsTable, error.message);
 
     for (const select of [tableProject, columnProject]) {
       select.replaceChildren();
+
       const option = document.createElement("option");
       option.value = "";
       option.textContent = "Could not load projects";
+
       select.appendChild(option);
     }
+
+    showMessage(projectMessage, error.message, "error");
   }
 }
 
-function fillProjectSelect(select, projects) {
-  const previous = select.value;
-  select.replaceChildren();
+// =====================================================
+// LOAD TABLES FOR SELECTED PROJECT
+// =====================================================
 
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Choose a project...";
-  select.appendChild(placeholder);
-
-  for (const project of projects) {
-    const option = document.createElement("option");
-    option.value = String(project.id);
-    option.textContent = `${project.name} (ID: ${project.id})`;
-    select.appendChild(option);
-  }
-
-  if (projects.some(project => String(project.id) === previous)) {
-    select.value = previous;
-  } else if (projects.length > 0) {
-    select.value = String(projects[0].id);
-  }
-}
-
-// Table listing.
 async function loadProjectTables() {
   const projectId = tableProject.value;
 
@@ -329,13 +469,12 @@ async function loadProjectTables() {
   showEmptyRow(projectTables, "Loading tables...", 3);
 
   try {
-    const response = await fetch(
+    const result = await apiRequest(
       `/api/projects/${encodeURIComponent(projectId)}/tables`
     );
-    const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Could not load tables.");
+    if (!Array.isArray(result.tables)) {
+      throw new Error("Unexpected tables response.");
     }
 
     projectTables.replaceChildren();
@@ -345,15 +484,14 @@ async function loadProjectTables() {
     } else {
       for (const name of result.tables) {
         const row = document.createElement("tr");
+
         row.appendChild(makeCell(name));
         row.appendChild(makeCell(result.schema));
 
         const statusCell = makeCell("");
-        const badge = document.createElement("span");
-        badge.className = "pill";
-        badge.textContent = "Available";
-        statusCell.appendChild(badge);
+        statusCell.appendChild(makeStatusBadge("Available"));
         row.appendChild(statusCell);
+
         projectTables.appendChild(row);
       }
     }
@@ -368,9 +506,13 @@ async function loadProjectTables() {
   }
 }
 
-// Column Manager: load tables for the selected project.
+// =====================================================
+// LOAD TABLES FOR COLUMN MANAGER
+// =====================================================
+
 async function loadColumnTables() {
   const projectId = columnProject.value;
+
   columnTable.replaceChildren();
 
   const placeholder = document.createElement("option");
@@ -381,34 +523,40 @@ async function loadColumnTables() {
   if (!projectId) return;
 
   try {
-    const response = await fetch(
+    const result = await apiRequest(
       `/api/projects/${encodeURIComponent(projectId)}/tables`
     );
-    const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Could not load tables.");
+    if (!Array.isArray(result.tables)) {
+      throw new Error("Unexpected tables response.");
     }
 
     for (const name of result.tables) {
       const option = document.createElement("option");
+
       option.value = name;
       option.textContent = name;
+
       columnTable.appendChild(option);
     }
 
-    if (result.tables.length === 0) {
-      showMessage(columnMessage, "This project has no tables yet.");
-    } else {
-      showMessage(columnMessage, "");
-    }
+    showMessage(
+      columnMessage,
+      result.tables.length === 0
+        ? "This project has no tables yet."
+        : ""
+    );
   } catch (error) {
     showMessage(columnMessage, error.message, "error");
   }
 }
 
+// =====================================================
+// REFRESH DASHBOARD
+// =====================================================
+
 async function refreshDashboard() {
-  refreshBtn.disabled = true;
+  if (refreshBtn) refreshBtn.disabled = true;
 
   try {
     await Promise.all([
@@ -417,38 +565,41 @@ async function refreshDashboard() {
       loadProjects()
     ]);
   } finally {
-    refreshBtn.disabled = false;
+    if (refreshBtn) refreshBtn.disabled = false;
   }
 }
 
-// Create project.
+// =====================================================
+// CREATE PROJECT
+// =====================================================
+
 projectForm.addEventListener("submit", async event => {
   event.preventDefault();
 
   const name = projectNameInput.value.trim();
 
   if (!name || name.length > 80) {
-    showMessage(projectMessage, "Enter a project name up to 80 characters.", "error");
+    showMessage(
+      projectMessage,
+      "Enter a project name up to 80 characters.",
+      "error"
+    );
     return;
   }
 
   createProjectBtn.disabled = true;
   createProjectBtn.textContent = "Creating...";
+
   showMessage(projectMessage, "");
 
   try {
-    const response = await fetch("/api/projects", {
+    const result = await apiRequest("/api/projects", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name })
     });
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not create project.");
-    }
 
     projectNameInput.value = "";
+
     showMessage(
       projectMessage,
       `Project "${result.name}" created successfully. ID: ${result.id}`,
@@ -456,6 +607,7 @@ projectForm.addEventListener("submit", async event => {
     );
 
     await refreshDashboard();
+
     tableProject.value = String(result.id);
     columnProject.value = String(result.id);
 
@@ -471,9 +623,16 @@ projectForm.addEventListener("submit", async event => {
   }
 });
 
-// Create table.
+// =====================================================
+// TABLE SELECTION
+// =====================================================
+
 tableProject.addEventListener("change", loadProjectTables);
 columnProject.addEventListener("change", loadColumnTables);
+
+// =====================================================
+// CREATE TABLE
+// =====================================================
 
 tableForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -487,7 +646,11 @@ tableForm.addEventListener("submit", async event => {
   }
 
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(name)) {
-    showMessage(tableMessage, "Use lowercase letters, numbers, and underscores.", "error");
+    showMessage(
+      tableMessage,
+      "Use lowercase letters, numbers, and underscores.",
+      "error"
+    );
     return;
   }
 
@@ -495,21 +658,16 @@ tableForm.addEventListener("submit", async event => {
   createTableBtn.textContent = "Creating...";
 
   try {
-    const response = await fetch(
+    const result = await apiRequest(
       `/api/projects/${encodeURIComponent(projectId)}/tables`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name })
       }
     );
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not create table.");
-    }
 
     tableNameInput.value = "";
+
     showMessage(
       tableMessage,
       `Table "${result.table}" created in Project ${projectId}.`,
@@ -528,7 +686,10 @@ tableForm.addEventListener("submit", async event => {
   }
 });
 
-// Add custom column.
+// =====================================================
+// ADD COLUMN
+// =====================================================
+
 columnForm.addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -551,21 +712,16 @@ columnForm.addEventListener("submit", async event => {
   addColumnBtn.textContent = "Adding...";
 
   try {
-    const response = await fetch(
+    const result = await apiRequest(
       `/api/projects/${encodeURIComponent(projectId)}/tables/${encodeURIComponent(tableName)}/columns`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, type })
       }
     );
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not add column.");
-    }
 
     columnNameInput.value = "";
+
     showMessage(
       columnMessage,
       `Column "${result.column}" (${result.type}) added to "${result.table}".`,
@@ -579,14 +735,21 @@ columnForm.addEventListener("submit", async event => {
   }
 });
 
-// Save test record.
+// =====================================================
+// SAVE TEST RECORD
+// =====================================================
+
 userForm.addEventListener("submit", async event => {
   event.preventDefault();
 
   const username = usernameInput.value.trim();
 
   if (!username || username.length > 100) {
-    showMessage(message, "Enter a username between 1 and 100 characters.", "error");
+    showMessage(
+      message,
+      "Enter a username between 1 and 100 characters.",
+      "error"
+    );
     return;
   }
 
@@ -594,19 +757,19 @@ userForm.addEventListener("submit", async event => {
   saveBtn.textContent = "Saving...";
 
   try {
-    const response = await fetch("/api/users", {
+    const result = await apiRequest("/api/users", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username })
     });
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not save record.");
-    }
 
     usernameInput.value = "";
-    showMessage(message, `Record ${result.id} saved successfully.`, "success");
+
+    showMessage(
+      message,
+      `Record ${result.id} saved successfully.`,
+      "success"
+    );
+
     await refreshDashboard();
   } catch (error) {
     showMessage(message, error.message, "error");
@@ -616,6 +779,16 @@ userForm.addEventListener("submit", async event => {
   }
 });
 
-refreshBtn.addEventListener("click", refreshDashboard);
+// =====================================================
+// REFRESH BUTTON
+// =====================================================
+
+if (refreshBtn) {
+  refreshBtn.addEventListener("click", refreshDashboard);
+}
+
+// =====================================================
+// START
+// =====================================================
 
 refreshDashboard();
