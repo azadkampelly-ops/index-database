@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101827">
+  <title>INDEX Database</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/">
+      <span class="brand-icon">I</span>
+      <span>INDEX<span class="brand-light">Database</span></span>
+    </a>
+
+    <p class="nav-heading">WORKSPACE</p>
+
+    <a class="nav-item active" href="/">
+      <span>▦</span> Overview
+    </a>
+
+    <a class="nav-item" href="#projects">
+      <span>▣</span> Projects
+    </a>
+
+    <a class="nav-item" href="#users">
+      <span>▤</span> Test records
+    </a>
+
+    <div class="sidebar-bottom">
+      <span class="status-dot"></span>
+      Local prototype
+      <p>INDEX · Database services</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">WORKSPACE / OVERVIEW</p>
+        <h1>Database dashboard</h1>
+        <p class="muted">Manage projects and test your PostgreSQL connection.</p>
+      </div>
+      <button id="refreshBtn" class="button secondary" type="button">
+        ↻ Refresh
+      </button>
+    </header>
+
+    <section class="notice">
+      <span class="notice-icon">i</span>
+      <div>
+        <strong>Development environment</strong>
+        <p>Create prototype projects and manage test records. Customer access is not enabled.</p>
+      </div>
+    </section>
+
+    <section class="stats">
+      <article class="stat-card">
+        <p>API connection</p>
+        <div class="stat-value">
+          <span id="connectionDot" class="status-dot"></span>
+          <span id="connectionStatus">Checking...</span>
+        </div>
+        <span id="databaseName" class="stat-foot">Checking PostgreSQL</span>
+      </article>
+
+      <article class="stat-card">
+        <p>Saved projects</p>
+        <div id="projectCount" class="stat-number">—</div>
+        <span class="stat-foot">Loaded from PostgreSQL</span>
+      </article>
+
+      <article class="stat-card">
+        <p>Saved test records</p>
+        <div id="recordCount" class="stat-number">—</div>
+        <span class="stat-foot">Loaded from PostgreSQL</span>
+      </article>
+    </section>
+
+    <section id="projects" class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Your projects</h2>
+          <p class="muted">Create and view your INDEX Database projects.</p>
+        </div>
+      </div>
+
+      <form id="projectForm" class="create-form">
+        <label for="projectName">Project name</label>
+        <div class="form-row">
+          <input
+            id="projectName"
+            name="projectName"
+            type="text"
+            maxlength="80"
+            placeholder="e.g. My Website Database"
+            required
+          >
+          <button id="createProjectBtn" class="button primary" type="submit">
+            + Create project
+          </button>
+        </div>
+      </form>
+
+      <p id="projectMessage" class="message" role="status" aria-live="polite"></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>PROJECT ID</th>
+              <th>PROJECT NAME</th>
+              <th>CREATED AT</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="projectsTable">
+            <tr>
+              <td colspan="4" class="empty">Loading projects...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel-footer">
+        Showing up to 100 recent projects
+      </div>
+    </section>
+
+    <section id="users" class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Test records</h2>
+          <p class="muted">Add a test record and see it saved in PostgreSQL.</p>
+        </div>
+      </div>
+
+      <form id="userForm" class="create-form">
+        <label for="username">Username</label>
+        <div class="form-row">
+          <input
+            id="username"
+            name="username"
+            type="text"
+            maxlength="100"
+            placeholder="Enter a test username"
+            required
+          >
+          <button id="saveBtn" class="button primary" type="submit">
+            + Save record
+          </button>
+        </div>
+      </form>
+
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>USERNAME</th>
+              <th>CREATED AT</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable">
+            <tr>
+              <td colspan="4" class="empty">Loading records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel-footer">
+        Showing up to 100 recent records
+      </div>
+    </section>
+
+    <footer>© INDEX Database · Prototype</footer>
+  </main>
+</body>
+</html>
