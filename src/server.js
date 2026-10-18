@@ -1,4 +1,3 @@
-
 const express = require("express");
 const path = require("path");
 const crypto = require("crypto");
@@ -37,6 +36,19 @@ app.use((req, res, next) => {
 
 // Rate limit API requests before authentication.
 app.use("/api", apiLimiter);
+
+// =====================================================
+// PUBLIC HEALTH CHECK — SERVICE STATUS ONLY
+// Must be before API authentication middleware.
+// =====================================================
+
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    service: "INDEX Database",
+    status: "running"
+  });
+});
 
 // =====================================================
 // CONFIGURATION
